@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import statusMonitor from "express-status-monitor";
 import { env } from "./config/env";
 import { requestMetrics } from "./middleware/requestMetrics";
 import { requestLogger } from "./middleware/requestLogger";
@@ -17,6 +18,7 @@ export function createApp(store: PmtilesStore) {
     origin: env.corsOrigin,
     exposedHeaders: ["Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified"]
   }));
+  app.use(statusMonitor());
 
   app.use(requestLogger);
   app.use(requestMetrics);
