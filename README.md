@@ -310,6 +310,62 @@ If your backend runs on a different port, update:
 - `npm run build` for type-safe compile output to `dist/`
 - `npm start` to run compiled output
 
+## Performance Test Suite (Autocannon + k6)
+
+Unified suite location:
+
+- `tests/perf/autocannon.mjs` (quick benchmark)
+- `tests/perf/k6-load.js` (real load profile)
+- `tests/perf/run-suite.mjs` (single runner for both)
+
+### Commands
+
+- Quick benchmark (Autocannon):
+
+```bash
+npm run perf:quick
+```
+
+- Real load test (k6):
+
+```bash
+npm run perf:load
+```
+
+- Run both in sequence:
+
+```bash
+npm run perf:all
+```
+
+### Required run order
+
+1. Start backend first:
+
+```bash
+npm run build
+npm run start:cluster
+```
+
+2. In another terminal, run perf tests (`perf:quick`, `perf:load`, or `perf:all`).
+
+### Config via env vars
+
+- `PERF_BASE_URL` (default `http://localhost:8080`)
+- `PERF_DURATION` (autocannon seconds, default `20`)
+- `PERF_CONNECTIONS` (autocannon concurrent connections, default `200`)
+- `PERF_PIPELINING` (autocannon pipelining, default `1`)
+
+Example:
+
+```bash
+PERF_BASE_URL=http://localhost:8080 PERF_DURATION=30 PERF_CONNECTIONS=400 npm run perf:quick
+```
+
+### k6 installation note
+
+`k6` must be installed on your system and available in `PATH`.
+
 ## Troubleshooting
 
 ### `readyz` returns not ready
