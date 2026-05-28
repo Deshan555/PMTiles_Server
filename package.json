@@ -11,7 +11,10 @@
     "start:cluster": "WORKERS=0 node dist/index.js",
     "monitor:up": "docker compose -f docker-compose.monitoring.yml up -d",
     "monitor:down": "docker compose -f docker-compose.monitoring.yml down",
-    "monitor:logs": "docker compose -f docker-compose.monitoring.yml logs -f"
+    "monitor:logs": "docker compose -f docker-compose.monitoring.yml logs -f",
+    "perf:quick": "node tests/perf/run-suite.mjs quick",
+    "perf:load": "node tests/perf/run-suite.mjs load",
+    "perf:all": "node tests/perf/run-suite.mjs all"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +32,7 @@
     "@types/express-status-monitor": "^1.3.3",
     "@types/mime-types": "^2.1.4",
     "@types/node": "^24.10.1",
+    "autocannon": "^8.0.0",
     "nodemon": "^3.1.10",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
