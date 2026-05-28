@@ -2,7 +2,7 @@ import autocannon from "autocannon";
 
 const baseUrl = process.env.PERF_BASE_URL || "http://localhost:8080";
 const duration = Number(process.env.PERF_DURATION || 20);
-const connections = Number(process.env.PERF_CONNECTIONS || 200);
+const connections = Number(process.env.PERF_CONNECTIONS || 2000);
 const pipelining = Number(process.env.PERF_PIPELINING || 1);
 
 const target = `${baseUrl}/tiles/map.pmtiles`;
