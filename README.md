@@ -87,6 +87,99 @@ npm run start:cluster
 - `GET /readyz` - Readiness check (ensures PMTiles file is readable)
 - `GET /metrics` - Prometheus-style counters
 
+## API Request/Response Types
+
+### `GET /tiles/map.pmtiles`
+
+- Request type:
+  - Method: `GET`
+  - Body: none
+  - Headers:
+    - Optional `Range: bytes=<start>-<end>`
+    - Optional cache validators: `If-None-Match`, `If-Modified-Since`
+- Response type:
+  - `200 OK` (full file) or `206 Partial Content` (range response)
+  - Content-Type: `application/octet-stream`
+  - Binary body: PMTiles bytes
+  - Key headers: `Content-Length`, `Content-Range` (for 206), `Accept-Ranges`, `ETag`, `Last-Modified`, `Cache-Control`
+  - `304 Not Modified` when validators match
+  - `400 Bad Request` for invalid range header:
+
+```json
+{"error":"Invalid Range header"}
+```
+
+  - `416 Range Not Satisfiable` with header `Content-Range: bytes */<fileSize>`
+  - `500 Internal Server Error` when file cannot be read:
+
+```json
+{"error":"Cannot read PMTiles file: <message>"}
+```
+
+### `HEAD /tiles/map.pmtiles`
+
+- Request type:
+  - Method: `HEAD`
+  - Body: none
+  - Optional cache validator headers: `If-None-Match`, `If-Modified-Since`
+- Response type:
+  - `200 OK` with headers only (no body)
+  - `304 Not Modified` with headers only
+  - Headers: `Content-Length`, `Accept-Ranges`, `ETag`, `Last-Modified`, `Cache-Control`, `Content-Type`
+  - `500 Internal Server Error` JSON on failure:
+
+```json
+{"error":"Cannot read PMTiles file: <message>"}
+```
+
+### `GET /healthz`
+
+- Request type:
+  - Method: `GET`
+  - Body: none
+- Response type:
+  - `200 OK` JSON:
+
+```json
+{"status":"ok","worker":12345}
+```
+
+### `GET /readyz`
+
+- Request type:
+  - Method: `GET`
+  - Body: none
+- Response type:
+  - `200 OK` JSON:
+
+```json
+{"ready":true,"file":"/abs/path/to/data/map.pmtiles","size":123456789}
+```
+
+  - `503 Service Unavailable` JSON:
+
+```json
+{"ready":false,"error":"<message>"}
+```
+
+### `GET /metrics`
+
+- Request type:
+  - Method: `GET`
+  - Body: none
+- Response type:
+  - `200 OK`
+  - Content-Type: `text/plain`
+  - Body format: Prometheus exposition text, for example:
+
+```text
+pmtiles_requests_total 12
+pmtiles_requests_active 1
+pmtiles_bytes_sent_total 1048576
+pmtiles_range_requests_total 10
+pmtiles_full_requests_total 2
+```
+
 ## Environment Variables
 
 | Variable | Default | Description |
