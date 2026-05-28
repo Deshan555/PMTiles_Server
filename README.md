@@ -251,6 +251,58 @@ For real internet-scale traffic, app code is only one part. Use:
 3. Autoscaling + multi-zone deployment
 4. Monitoring/alerting using `/metrics`
 
+## Grafana + Prometheus Health Watch
+
+This project includes a ready monitoring stack:
+
+- Prometheus scrape config: `monitoring/prometheus/prometheus.yml`
+- Grafana provisioning: `monitoring/grafana/provisioning/...`
+- Prebuilt dashboard: `monitoring/grafana/dashboards/pmtiles-overview.json`
+- Compose file: `docker-compose.monitoring.yml`
+
+### Start monitoring stack
+
+1. Start backend first:
+
+```bash
+npm run build
+npm run start:cluster
+```
+
+2. In another terminal, start monitoring:
+
+```bash
+npm run monitor:up
+```
+
+### Access UI
+
+- Prometheus: [http://localhost:9090](http://localhost:9090)
+- Grafana: [http://localhost:3000](http://localhost:3000)
+  - Username: `admin`
+  - Password: `admin`
+
+The `PMTiles Backend Overview` dashboard is auto-loaded.
+
+### Stop monitoring stack
+
+```bash
+npm run monitor:down
+```
+
+### Watch monitoring container logs
+
+```bash
+npm run monitor:logs
+```
+
+### Important networking note
+
+Prometheus targets `host.docker.internal:8080`, so your Node server must run on host port `8080`.
+If your backend runs on a different port, update:
+
+- `monitoring/prometheus/prometheus.yml` target value
+
 ## Developer Workflow
 
 - Edit TS source in `src/`
