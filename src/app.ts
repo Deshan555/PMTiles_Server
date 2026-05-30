@@ -19,6 +19,7 @@ export function createApp(store: PmtilesStore) {
     exposedHeaders: ["Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified"]
   }));
   app.use(statusMonitor());
+  app.use(express.json({ limit: "1mb" }));
 
   app.use(requestLogger);
   app.use(requestMetrics);

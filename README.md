@@ -86,6 +86,7 @@ npm run start:cluster
 - `GET /healthz` - Liveness check
 - `GET /readyz` - Readiness check (ensures PMTiles file is readable)
 - `GET /metrics` - Prometheus-style counters
+- `POST /routing/solve` - Backend route solving from stop points (snapped/fallback modes)
 
 ## API Request/Response Types
 
