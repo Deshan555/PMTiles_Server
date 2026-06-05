@@ -52,6 +52,7 @@ Available commands:
 
 ```bash
 ./pmtiles-server.sh check
+./pmtiles-server.sh validate-pmtiles
 ./pmtiles-server.sh install
 ./pmtiles-server.sh build
 ./pmtiles-server.sh start
@@ -87,7 +88,23 @@ The check validates:
 - `src/server.ts`
 - `src/config/env.ts`
 - the configured `PMTILES_PATH`
+- PMTiles magic bytes: `PMTiles`
+- PMTiles spec version: `3`
+- PMTiles header ranges point inside the file
+- PMTiles parser can read the archive root directory, when npm dependencies are installed
 - `dist/index.js`, if already built
+
+To validate only the map archive:
+
+```bash
+./pmtiles-server.sh validate-pmtiles
+```
+
+Use a custom file:
+
+```bash
+PMTILES_PATH=/srv/localtiles/data/map.pmtiles ./pmtiles-server.sh validate-pmtiles
+```
 
 Manual file checks:
 
@@ -367,6 +384,7 @@ variable.
 ## Production Checklist
 
 - `./pmtiles-server.sh check` passes
+- `./pmtiles-server.sh validate-pmtiles` confirms the archive header
 - `npm run build` passes
 - `PMTILES_PATH` is absolute
 - `CORS_ORIGIN` is set to the frontend domain

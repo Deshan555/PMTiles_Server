@@ -37,6 +37,8 @@ Usage:
 
 Commands:
   check       Verify local files, runtime tools, and map data
+  validate-pmtiles
+              Verify PMTILES_PATH has a real PMTiles v3 archive header
   install     Install dependencies with npm ci
   build       Compile TypeScript into dist/
   start       Start compiled server in the background
@@ -96,6 +98,162 @@ check_node() {
   log "OK Node.js $(node -v)"
 }
 
+validate_pmtiles_archive() {
+  require_file "$PMTILES_PATH" "PMTiles file"
+
+  case "$PMTILES_PATH" in
+    *.pmtiles|*.pmtile)
+      log "OK PMTiles filename extension"
+      ;;
+    *)
+      log "WARN PMTiles file extension is not .pmtiles or .pmtile: $PMTILES_PATH"
+      ;;
+  esac
+
+  node - "$PMTILES_PATH" <<'NODE'
+const fs = require("fs");
+
+const HEADER_SIZE_BYTES = 127;
+const filePath = process.argv[2];
+
+function fail(message) {
+  console.error(`ERROR: ${message}`);
+  process.exit(1);
+}
+
+function readUint64(header, offset, label) {
+  const value = header.readBigUInt64LE(offset);
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    fail(`${label} is too large to validate safely: ${value.toString()}`);
+  }
+  return Number(value);
+}
+
+function checkRange(name, offset, length, fileSize) {
+  if (length === 0) {
+    if (name === "root directory") {
+      fail("root directory length is zero");
+    }
+    return;
+  }
+  if (offset < HEADER_SIZE_BYTES) {
+    fail(`${name} offset ${offset} points inside the PMTiles header`);
+  }
+  if (offset + length > fileSize) {
+    fail(`${name} range ${offset}+${length} exceeds file size ${fileSize}`);
+  }
+}
+
+async function runPmtilesLibraryCheck(filePath) {
+  let pmtiles;
+  try {
+    pmtiles = require("pmtiles");
+  } catch (error) {
+    if (error && error.code === "MODULE_NOT_FOUND") {
+      console.log("WARN pmtiles npm package is not installed; skipped parser compatibility check");
+      return;
+    }
+    throw error;
+  }
+
+  class LocalFileSource {
+    constructor(path) {
+      this.path = path;
+    }
+
+    getKey() {
+      return this.path;
+    }
+
+    async getBytes(offset, length) {
+      const handle = await fs.promises.open(this.path, "r");
+      try {
+        const buffer = Buffer.allocUnsafe(length);
+        const { bytesRead } = await handle.read(buffer, 0, length, offset);
+        const bytes = Uint8Array.from(buffer.subarray(0, bytesRead));
+        return { data: bytes.buffer };
+      } finally {
+        await handle.close();
+      }
+    }
+  }
+
+  const archive = new pmtiles.PMTiles(new LocalFileSource(filePath));
+  const parsedHeader = await archive.getHeader();
+  if (parsedHeader.specVersion !== 3) {
+    fail(`pmtiles parser returned unsupported spec version ${parsedHeader.specVersion}`);
+  }
+
+  console.log(
+    `OK pmtiles parser read archive root directory (z${parsedHeader.minZoom}-${parsedHeader.maxZoom}, tileType ${parsedHeader.tileType})`
+  );
+}
+
+const stat = fs.statSync(filePath);
+if (!stat.isFile()) {
+  fail(`PMTILES_PATH is not a regular file: ${filePath}`);
+}
+if (stat.size < HEADER_SIZE_BYTES) {
+  fail(`file is too small to be a PMTiles archive: ${stat.size} bytes`);
+}
+
+const fd = fs.openSync(filePath, "r");
+const header = Buffer.alloc(HEADER_SIZE_BYTES);
+try {
+  const bytesRead = fs.readSync(fd, header, 0, HEADER_SIZE_BYTES, 0);
+  if (bytesRead !== HEADER_SIZE_BYTES) {
+    fail(`could not read full PMTiles header: ${bytesRead}/${HEADER_SIZE_BYTES} bytes`);
+  }
+} finally {
+  fs.closeSync(fd);
+}
+
+const magic = header.subarray(0, 7).toString("ascii");
+if (magic !== "PMTiles") {
+  const firstBytes = header.subarray(0, 8).toString("hex");
+  fail(`wrong magic bytes. Expected "PMTiles"; first 8 bytes are 0x${firstBytes}`);
+}
+
+const specVersion = header.readUInt8(7);
+if (specVersion !== 3) {
+  fail(`unsupported PMTiles spec version ${specVersion}. PMTiles_Server expects spec v3`);
+}
+
+const ranges = [
+  ["root directory", readUint64(header, 8, "root directory offset"), readUint64(header, 16, "root directory length")],
+  ["JSON metadata", readUint64(header, 24, "JSON metadata offset"), readUint64(header, 32, "JSON metadata length")],
+  ["leaf directory", readUint64(header, 40, "leaf directory offset"), readUint64(header, 48, "leaf directory length")],
+  ["tile data", readUint64(header, 56, "tile data offset"), readUint64(header, 64, "tile data length")],
+];
+
+for (const [name, offset, length] of ranges) {
+  checkRange(name, offset, length, stat.size);
+}
+
+const minZoom = header.readUInt8(100);
+const maxZoom = header.readUInt8(101);
+if (minZoom > maxZoom) {
+  fail(`invalid zoom range: minZoom ${minZoom} is greater than maxZoom ${maxZoom}`);
+}
+
+const minLon = header.readInt32LE(102) / 10_000_000;
+const minLat = header.readInt32LE(106) / 10_000_000;
+const maxLon = header.readInt32LE(110) / 10_000_000;
+const maxLat = header.readInt32LE(114) / 10_000_000;
+if (minLon < -180 || maxLon > 180 || minLat < -90 || maxLat > 90) {
+  fail(`invalid bounds: [${minLon}, ${minLat}, ${maxLon}, ${maxLat}]`);
+}
+
+console.log(`OK PMTiles magic header`);
+console.log(`OK PMTiles spec version ${specVersion}`);
+console.log(`OK PMTiles header ranges are inside file (${stat.size} bytes)`);
+
+runPmtilesLibraryCheck(filePath).catch((error) => {
+  fail(`pmtiles parser could not read archive: ${error && error.message ? error.message : String(error)}`);
+});
+NODE
+}
+
 check_files() {
   check_node
   require_command npm
@@ -107,7 +265,7 @@ check_files() {
   require_file "$ROOT_DIR/src/index.ts" "src/index.ts"
   require_file "$ROOT_DIR/src/server.ts" "src/server.ts"
   require_file "$ROOT_DIR/src/config/env.ts" "src/config/env.ts"
-  require_file "$PMTILES_PATH" "PMTiles file"
+  validate_pmtiles_archive
 
   log "PMTiles path: $PMTILES_PATH"
   log "PMTiles size: $(human_size "$PMTILES_PATH")"
@@ -324,6 +482,7 @@ command_name="${1:-}"
 
 case "$command_name" in
   check) check_files ;;
+  validate-pmtiles) validate_pmtiles_archive ;;
   install) install_deps ;;
   build) build_app ;;
   start) start_server ;;
