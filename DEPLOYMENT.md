@@ -420,6 +420,27 @@ ls -lh /srv/localtiles/data/map.pmtiles
 PMTILES_PATH=/srv/localtiles/data/map.pmtiles ./pmtiles-server.sh check
 ```
 
+If `/readyz` reports a file size around 130-140 bytes, the VM has a Git LFS
+pointer instead of the actual PMTiles archive. Confirm it with:
+
+```bash
+stat -c '%n %s bytes' /srv/localtiles/data/map.pmtiles
+head -n 3 /srv/localtiles/data/map.pmtiles
+```
+
+A pointer starts with `version https://git-lfs.github.com/spec/v1`. Fetch the
+real binary on the VM, or upload it separately:
+
+```bash
+git lfs install
+git lfs pull --include='data/map.pmtiles'
+PMTILES_PATH=/srv/localtiles/data/map.pmtiles ./pmtiles-server.sh validate-pmtiles
+```
+
+Also check the `file` value returned by `/readyz`. Set `PMTILES_PATH` to the
+absolute path of the real archive if the deployment package stores it
+elsewhere, such as `/srv/localtiles/dist/data/map.pmtiles`.
+
 ### Browser CORS Error
 
 Set:

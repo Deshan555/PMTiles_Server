@@ -210,6 +210,14 @@ try {
 
 const magic = header.subarray(0, 7).toString("ascii");
 if (magic !== "PMTiles") {
+  const textPrefix = header.toString("utf8");
+  if (textPrefix.startsWith("version https://git-lfs.github.com/spec/v1")) {
+    fail(
+      `PMTILES_PATH is a Git LFS pointer, not the map archive: ${filePath} (${stat.size} bytes). ` +
+      "Run git lfs pull on the VM or deploy the real .pmtiles binary."
+    );
+  }
+
   const firstBytes = header.subarray(0, 8).toString("hex");
   fail(`wrong magic bytes. Expected "PMTiles"; first 8 bytes are 0x${firstBytes}`);
 }

@@ -3,3 +3,4 @@ node_modules/
 *.log
 dist/
 .pmtiles-server.pid
+.zip
