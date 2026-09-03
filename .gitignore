@@ -1,6 +1,69 @@
+# Dependencies
 node_modules/
-.DS_Store
-*.log
+.pnp
+.pnp.js
+
+# Build & Compilation Outputs
 dist/
+build/
+*.tsbuildinfo
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.env.local
+
+# Logs & Diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Process IDs, Sockets, and Lockfiles
+*.pid
+*.seed
+*.pid.lock
 .pmtiles-server.pid
-.zip
+
+# Large Map Data & Archives
+*.pmtiles
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+data/*.pmtiles
+data/*.zip
+!data/README.txt
+!data/.gitkeep
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Editor & IDE Files
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# Cache & Temporary Directories
+.cache/
+.npm/
+.eslintcache
