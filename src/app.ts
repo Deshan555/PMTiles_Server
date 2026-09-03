@@ -1,5 +1,7 @@
 import cors from "cors";
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
 import statusMonitor from "express-status-monitor";
 import { env } from "./config/env";
 import { requestMetrics } from "./middleware/requestMetrics";
@@ -21,6 +23,16 @@ export function createApp(store: PmtilesStore) {
   app.use(statusMonitor());
   app.use(express.json({ limit: "1mb" }));
 
+  const publicDir = path.join(process.cwd(), "public");
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    const mapDir = path.join(publicDir, "map");
+    if (fs.existsSync(mapDir)) {
+      app.use(express.static(mapDir));
+      app.use("/map", express.static(mapDir));
+    }
+  }
+
   app.use(requestLogger);
   app.use(requestMetrics);
   app.use(createSystemRoutes());
@@ -28,3 +40,4 @@ export function createApp(store: PmtilesStore) {
 
   return app;
 }
+
